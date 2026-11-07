@@ -1,10 +1,15 @@
 #!/bin/bash
 
+# Override these to install from a fork or branch, e.g. when testing in CI
+OTS_INSTALLER_REPO=${OTS_INSTALLER_REPO:-brian7704/OpenTAKServer-Installer}
+OTS_INSTALLER_REF=${OTS_INSTALLER_REF:-master}
+OTS_INSTALLER_RAW_URL="https://raw.githubusercontent.com/${OTS_INSTALLER_REPO}/${OTS_INSTALLER_REF}"
+
 INSTALLER_DIR=/tmp/ots_installer
 mkdir -p $INSTALLER_DIR
 cd $INSTALLER_DIR
 
-wget https://github.com/brian7704/OpenTAKServer-Installer/raw/master/colors.sh -qO "$INSTALLER_DIR"/colors.sh
+wget ${OTS_INSTALLER_RAW_URL}/colors.sh -qO "$INSTALLER_DIR"/colors.sh
 . "$INSTALLER_DIR"/colors.sh
 
 . /etc/os-release
@@ -77,10 +82,13 @@ flask db upgrade
 cd "$INSTALLER_DIR"
 echo "${GREEN}Finished initializing database!${NC}"
 
-INSTALL_ZEROTIER=""
+# Set OTS_INSTALL_ZEROTIER to y or n to skip this prompt
+INSTALL_ZEROTIER=${OTS_INSTALL_ZEROTIER:-}
 while :
 do
-  read -p "${GREEN}Would you like to install ZeroTier?${NC} [y/n]" INSTALL_ZEROTIER < /dev/tty
+  if [ -z "$INSTALL_ZEROTIER" ]; then
+    read -p "${GREEN}Would you like to install ZeroTier?${NC} [y/n]" INSTALL_ZEROTIER < /dev/tty
+  fi
   if [[ "$INSTALL_ZEROTIER" =~ [yY]|[yY][eE][sS] ]]; then
     INSTALL_ZEROTIER=1
     break
@@ -89,6 +97,7 @@ do
     break
   else
     echo "${RED}Invalid input${NC}"
+    INSTALL_ZEROTIER=""
   fi
 done
 
@@ -115,10 +124,13 @@ then
   read -p "${GREEN}ZeroTier has been installed. Please log into your ZeroTier admin account and authorize this server and then press enter to continue.${NC}" < /dev/tty
 fi
 
-INSTALL_MUMBLE=""
+# Set OTS_INSTALL_MUMBLE to y or n to skip this prompt
+INSTALL_MUMBLE=${OTS_INSTALL_MUMBLE:-}
 while :
 do
-  read -p "${GREEN}Would you like to install Mumble Server?${NC} [y/n]" INSTALL_MUMBLE < /dev/tty
+  if [ -z "$INSTALL_MUMBLE" ]; then
+    read -p "${GREEN}Would you like to install Mumble Server?${NC} [y/n]" INSTALL_MUMBLE < /dev/tty
+  fi
   if [[ "$INSTALL_MUMBLE" =~ [yY]|[yY][eE][sS] ]]; then
     INSTALL_MUMBLE=1
     break
@@ -127,6 +139,7 @@ do
     break
   else
     echo "${RED}Invalid input${NC}"
+    INSTALL_MUMBLE=""
   fi
 done
 
@@ -167,7 +180,7 @@ elif [ "$KERNEL_BITS" == 64 ]; then
 fi
 
 tar -xf ./*.tar.gz
-wget https://github.com/brian7704/OpenTAKServer-Installer/raw/master/mediamtx.yml -qO ~/ots/mediamtx/mediamtx.yml
+wget ${OTS_INSTALLER_RAW_URL}/mediamtx.yml -qO ~/ots/mediamtx/mediamtx.yml
 
 sudo tee /etc/systemd/system/mediamtx.service >/dev/null << EOF
 [Unit]
@@ -200,11 +213,11 @@ sudo rm -f /etc/nginx/sites-enabled/*
 sudo mkdir -p /etc/nginx/streams-available
 sudo mkdir -p /etc/nginx/streams-enabled
 
-sudo wget https://raw.githubusercontent.com/brian7704/OpenTAKServer-Installer/master/nginx_configs/rabbitmq -qO /etc/nginx/streams-available/rabbitmq
-sudo wget https://raw.githubusercontent.com/brian7704/OpenTAKServer-Installer/refs/heads/master/nginx_configs/mediamtx -qO /etc/nginx/streams-available/mediamtx
-sudo wget https://raw.githubusercontent.com/brian7704/OpenTAKServer-Installer/refs/heads/master/nginx_configs/ots_certificate_enrollment -qO /etc/nginx/sites-available/ots_certificate_enrollment
-sudo wget https://raw.githubusercontent.com/brian7704/OpenTAKServer-Installer/refs/heads/master/nginx_configs/ots_http -qO /etc/nginx/sites-available/ots_http
-sudo wget https://raw.githubusercontent.com/brian7704/OpenTAKServer-Installer/refs/heads/master/nginx_configs/ots_https -qO /etc/nginx/sites-available/ots_https
+sudo wget ${OTS_INSTALLER_RAW_URL}/nginx_configs/rabbitmq -qO /etc/nginx/streams-available/rabbitmq
+sudo wget ${OTS_INSTALLER_RAW_URL}/nginx_configs/mediamtx -qO /etc/nginx/streams-available/mediamtx
+sudo wget ${OTS_INSTALLER_RAW_URL}/nginx_configs/ots_certificate_enrollment -qO /etc/nginx/sites-available/ots_certificate_enrollment
+sudo wget ${OTS_INSTALLER_RAW_URL}/nginx_configs/ots_http -qO /etc/nginx/sites-available/ots_http
+sudo wget ${OTS_INSTALLER_RAW_URL}/nginx_configs/ots_https -qO /etc/nginx/sites-available/ots_https
 
 sudo sed -i "s~SERVER_CERT_FILE~${HOME}/ots/ca/certs/opentakserver/opentakserver.pem~g" /etc/nginx/sites-available/ots_https
 sudo sed -i "s~SERVER_CERT_FILE~${HOME}/ots/ca/certs/opentakserver/opentakserver.pem~g" /etc/nginx/sites-available/ots_certificate_enrollment
@@ -311,7 +324,7 @@ sudo systemctl enable eud_handler_ssl
 sudo systemctl start eud_handler_ssl
 
 echo "${GREEN}Configuring RabbitMQ...${NC}"
-sudo wget https://raw.githubusercontent.com/brian7704/OpenTAKServer-Installer/master/rabbitmq.conf -qO /etc/rabbitmq/rabbitmq.conf
+sudo wget ${OTS_INSTALLER_RAW_URL}/rabbitmq.conf -qO /etc/rabbitmq/rabbitmq.conf
 
 # On Ubuntu 25.04 and up the PLUGINS_DIR variable needs to be set in order to enable plugins
 IFS=" "

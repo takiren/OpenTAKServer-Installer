@@ -1,0 +1,50 @@
+name: Installer
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      TERM: xterm
+      GITHUB_API_TOKEN: ${{ github.token }}
+      # Fetch configs from the commit under test instead of upstream master
+      OTS_INSTALLER_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+      OTS_INSTALLER_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+      OTS_INSTALL_ZEROTIER: n
+      OTS_INSTALL_MUMBLE: n
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pipe the script in the same way as the documented curl | bash install
+      - name: Run installer
+        run: cat ubuntu_installer.sh | bash -
+
+      # The installer doesn't stop on errors yet, so its exit code proves nothing
+      - name: Check services
+        run: |
+          for attempt in {1..12}; do
+            failed=0
+            for service in nginx rabbitmq-server postgresql mediamtx opentakserver cot_parser eud_handler eud_handler_ssl; do
+              systemctl is-active --quiet "$service" || failed=1
+            done
+            [ "$failed" = 0 ] && break
+            sleep 5
+          done
+          systemctl --no-pager status nginx rabbitmq-server mediamtx opentakserver cot_parser eud_handler eud_handler_ssl || true
+          exit "$failed"
+
+      - name: Check web UI
+        run: curl --fail --silent --show-error --insecure --output /dev/null https://localhost/
+
+      - name: Show logs
+        if: failure()
+        run: |
+          sudo journalctl --no-pager -n 200 -u nginx -u rabbitmq-server -u opentakserver
+          tail -n 200 ~/ots/logs/opentakserver.log || true
