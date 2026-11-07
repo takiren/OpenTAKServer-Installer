@@ -48,7 +48,8 @@ jobs:
         run: curl --fail --silent --show-error --insecure --output /dev/null https://localhost/
 
       - name: Show logs
-        if: failure()
+        if: always()
         run: |
-          sudo journalctl --no-pager -n 200 -u nginx -u rabbitmq-server -u opentakserver
+          sudo journalctl --no-pager -n 200 -u nginx -u rabbitmq-server -u mediamtx -u opentakserver
           tail -n 200 ~/ots/logs/opentakserver.log || true
+          tail -n 200 ~/ots/mediamtx/mediamtx.log || true
