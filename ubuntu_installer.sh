@@ -37,7 +37,7 @@ sudo apt update && sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt up
 sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt install curl python3 python3-pip python3-venv rabbitmq-server openssl nginx ffmpeg libnginx-mod-stream python3-dev postgresql-postgis pgloader -y
 
 echo "${GREEN} Installing OpenTAKServer from PyPI...${NC}"
-python3 -m venv --system-site-packages ~/.opentakserver_venv
+python3 -m venv ~/.opentakserver_venv
 source "$HOME"/.opentakserver_venv/bin/activate
 python3 -m pip install --upgrade pip setuptools wheel
 pip3 install opentakserver

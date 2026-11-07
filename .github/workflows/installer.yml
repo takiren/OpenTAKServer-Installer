@@ -22,6 +22,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # PostgreSQL is preinstalled on the runner but not started
+      - name: Start PostgreSQL
+        run: sudo systemctl start postgresql
+
       # Pipe the script in the same way as the documented curl | bash install
       - name: Run installer
         run: cat ubuntu_installer.sh | bash -
